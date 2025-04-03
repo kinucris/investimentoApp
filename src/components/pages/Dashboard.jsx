@@ -15,9 +15,6 @@ import { Card, CardContent } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Avatar } from "../ui/Avatar";
-import ConfirmModal from "../ui/ConfirmModal";
-import Toast from "../ui/Toast";
-import { Pencil, Trash2 } from "lucide-react";
 
 const Dashboard = () => {
   const [investimentos, setInvestimentos] = useState([]);
@@ -30,10 +27,6 @@ const Dashboard = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [user, setUser] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalAction, setModalAction] = useState(null);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toDeleteId, setToDeleteId] = useState(null);
 
   useEffect(() => {
     const auth = getAuth();
@@ -54,13 +47,14 @@ const Dashboard = () => {
   };
 
   const saveInvestment = async () => {
+    const confirmMessage = editingId ? "Deseja salvar as alterações?" : "Deseja adicionar este ativo?";
+    if (!window.confirm(confirmMessage)) return;
+
     if (editingId) {
       const docRef = doc(db, "investimentos", editingId);
       await updateDoc(docRef, newInvestment);
-      setToastMessage("Investimento atualizado com sucesso!");
     } else {
       await addDoc(collection(db, "investimentos"), newInvestment);
-      setToastMessage("Investimento adicionado com sucesso!");
     }
     setNewInvestment({ nome: "", valor: "", quantidade: "", rendimento: "" });
     setEditingId(null);
@@ -77,18 +71,10 @@ const Dashboard = () => {
     setEditingId(inv.id);
   };
 
-  const confirmDelete = (id) => {
-    setToDeleteId(id);
-    setModalAction(() => () => deleteInvestment(id));
-    setModalOpen(true);
-  };
-
   const deleteInvestment = async (id) => {
+    if (!window.confirm("Tem certeza que deseja excluir este ativo?")) return;
     await deleteDoc(doc(db, "investimentos", id));
-    setToastMessage("Investimento excluído com sucesso!");
     fetchInvestimentos();
-    setModalOpen(false);
-    setToDeleteId(null);
   };
 
   const searchAssets = async (query) => {
@@ -173,35 +159,16 @@ const Dashboard = () => {
             <p>Quantidade: {inv.quantidade}</p>
             <p>Dividendos: <strong>R${inv.rendimento}/mês</strong></p>
             <div className="flex gap-2 mt-2">
-              <Button
-                onClick={() => editInvestment(inv)}
-                className="bg-yellow-500 hover:bg-yellow-600 flex items-center gap-2"
-              >
-                <Pencil size={16} /> Editar
+              <Button onClick={() => editInvestment(inv)} className="bg-yellow-500 hover:bg-yellow-600">
+                Editar
               </Button>
-              <Button
-                onClick={() => confirmDelete(inv.id)}
-                className="bg-red-500 hover:bg-red-600 flex items-center gap-2"
-              >
-                <Trash2 size={16} /> Excluir
+              <Button onClick={() => deleteInvestment(inv.id)} className="bg-red-500 hover:bg-red-600">
+                Excluir
               </Button>
             </div>
           </Card>
         ))}
       </div>
-
-      <ConfirmModal
-        open={modalOpen}
-        message="Tem certeza que deseja excluir este investimento?"
-        onConfirm={modalAction}
-        onCancel={() => setModalOpen(false)}
-      />
-
-      <Toast
-        message={toastMessage}
-        visible={toastMessage !== ""}
-        onClose={() => setToastMessage("")}
-      />
     </div>
   );
 };
